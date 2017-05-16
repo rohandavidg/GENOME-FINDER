@@ -12,7 +12,7 @@ import shlex
 
 def main():
     args = parse_args()
-    cds_bed = pargs_gtf(args.gtf_file, args.organism_name)
+    cds_bed = parse_gtf(args.gtf_file, args.organism_name)
 
 
 def parse_args():
@@ -38,7 +38,7 @@ def parse_gtf(gtf_file, organism_name):
         for row in reader:
             try:
                 if row[2] == 'CDS':
-                    chrom = 'chr' + row[0]
+                    chrom = row[0]
                     start = row[3]
                     stop = row[4]
                     transcript_id = row[8].split(';')[1]
@@ -48,7 +48,8 @@ def parse_gtf(gtf_file, organism_name):
                     gene = shlex.split(gene_name.split(" ")[2])[0]
                     transcript = shlex.split(transcript_id.split(" ")[2])[0]
                     out = (chrom, start, stop, gene, transcript, exon)
-                    fout.write('\t'.join(str(i) for i in out) + '\n')
+                    print out
+#                    fout.write('\t'.join(str(i) for i in out) + '\n')
                 else:
                     pass
             except IndexError:
