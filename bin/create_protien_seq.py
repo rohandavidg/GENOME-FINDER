@@ -29,13 +29,18 @@ from do_logging import configure_logger
 import parser_gtf
 
 log_filename = "create_protien_seq"
+test1 = "M306I"
+gene1 = 'embB'
 
 def main():
-   logger = configure_logger()
+   logger = configure_logger(log_filename)
    args = parse_args()
-   bed_file = parser_gtf(args.organism_name, args.gtf_file)
-   print bed_file
+   bed_file = parser_gtf.main(args.gtf_file, args.organism_name)
    genes = Fasta(args.fasta)
+   bed_dict = parse_bed_file(bed_file, logger)
+   seq_dict = faidx_the_lot(bed_dict, genes, logger)
+   amino_dict = gene_level_aa(seq_dict, gene1, logger)
+#   genomic_position = get_renomic_postion(amino_dict, test1, gene1)
 
 
 def parse_args():
@@ -44,15 +49,12 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-o', dest='organism_name',
-                       help='name of the organism',
-                       required=True)
-#    parser.add_argument('-b', dest='bed_file',
-#                        help="bed file of the organism cds region",
-#                        required=True)
+                        help='name of the organism',
+                        required=True)
     parser.add_argument('-g', dest='gtf_file',
                         help="ensembl gtf file",
                         required=True)
-    parser.add_argument('-f', dest='fasta',
+    parser.add_argument('-f', dest='fasta', required=True,
                         help="fasta sequences of the organism")
     args = parser.parse_args()
     return args
@@ -87,35 +89,71 @@ def parse_bed_file(bed_file, logger):
              try:
                 gene_transcript = good_line[3]
                 gene = gene_transcript.split(":")[0]
-                chrom_start_stop = [chrom, start, stop]
+                chrom_start_stop = [chrom, start, stop, gene]
                 bed_transcipt_dict[gene].append(chrom_start_stop)
              except IndexError:
                 logger.debug("{0} gene not present in the 3rd column".format(gene_transcript))
     return bed_transcipt_dict
     
 
-def faidx_the_lot(bed_transcipt_dict, logger):
-    bed_amino_dict = defaultdict(list)
+def faidx_the_lot(bed_transcipt_dict, genes, logger):
+    bed_seq_dict = {}
     for key, value in bed_transcipt_dict.items():
-        try:
-            transcript = key.split(":")[1]
-            for i in value:
-                chrom = i[0]
-                start = int(i[1])
-                stop = int(i[2])
-                strand = i[3]
-                position = i[4]
-                region = i[5]
-                try:
-                    sequence = genes[chrom][start:stop].seq
-                    length = int(len(sequence)/3)
-                    new_value  = i + [sequence, length]
-                    bed_amino_dict[key].append(new_value)
-                except ValueError:
-                    logger.debug('Missing fields in target.bed file. please check if target.bed is in std format')
-        except IndexError:
-            sys.exit('Missing transcript in bed, check validate_bed_<date>.log for errors')
-    return bed_amino_dict
+       gene = key.split(":")[0]
+       for i in value:
+          chrom = i[0]
+          start = int(i[1])
+          stop = int(i[2])
+          gene = i[3]
+          try:
+             sequence = genes[chrom][start:stop].seq
+             length = int(len(sequence)/3)
+             new_value  = i + [sequence, length]
+             bed_seq_dict[key] = new_value
+          except ValueError:
+             logger.debug('Missing fields in target.bed file. please check if target.bed is in std format')
+    return bed_seq_dict
+
+
+def get_amino_acid(sequence):
+    seq = Seq(sequence)
+    table = 1
+    min_pro_len = 20
+    for strand, nuc in [(1, seq)]:
+        for frame in range(3):
+           yield nuc[frame:].translate(table=11)
+
+
+def generate_aa(gen_sequence):
+    for aa in gen_sequence:
+       return aa
+#        if aa.startswith('M'):
+#            return aa
+#        else:
+#            pass
+
+
+def gene_level_aa(bed_seq_dict, logger, gene1):
+    gene_seq_dict = defaultdict(list)
+    exon_seq = ''
+    for key, value in bed_seq_dict.items():
+       if key == 'embB':
+          print generate_aa(get_amino_acid(value[4]))
+#             try:
+#                exon_seq += "".join(str(j) for j in i[-2:-1])
+#                print exon_seq
+#             except IndexError:
+#                logger.debug('Missing strand information in {0}'.format(i))
+#    amino_acid = get_amino_acid(exon_seq)
+#    print generate_aa(amino_acid)
+#    print new_value
+#       gene_seq_dict[key].append(new_value)
+#    return gene_seq_dict
+
+
+def get_genomic_postion(gene_seq_dict, test1, gene):
+   for k, v in gene_seq_dict.items():
+      print k
 
 
 if __name__ == "__main__":

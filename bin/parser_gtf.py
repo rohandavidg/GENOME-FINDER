@@ -4,31 +4,14 @@
 create only a coding bedfile from ensemble"
 """
 
-import argparse
 import csv
 import gzip
 import shlex
 
 
-def main():
-    args = parse_args()
-    cds_bed = parse_gtf(args.gtf_file, args.organism_name)
+def main(gtf_file, organism_name):
+    cds_bed = parse_gtf(gtf_file, organism_name)
     return cds_bed
-
-def parse_args():
-    """
-    parsing arguments
-    """
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-o', dest='organism_name',
-                       help='name of the organism',
-                       required=True)
-    parser.add_argument('-g', dest='gtf_file',
-                        help="ensembl gtf file",
-                        required=True)
-    args = parser.parse_args()
-    return args
-
 
 
 def parse_gtf(gtf_file, organism_name):
@@ -57,4 +40,4 @@ def parse_gtf(gtf_file, organism_name):
 
                 
 if __name__ == "__main__":
-    main()
+    main(gtf_file, organism_name)
